@@ -585,52 +585,51 @@ async function convertWordFileToPdf(file) {
     }
 
     return new Promise((resolve, reject) => {
-        const tempDiv = document.createElement('div');
-        tempDiv.style.cssText = `
-            position: fixed;
-            left: -9999px;
-            top: -9999px;
-            width: 595px;
-            padding: 40px;
-            font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', sans-serif;
-            font-size: 14px;
-            line-height: 1.8;
-            color: #000;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        `;
+        const fontUrl = 'https://fonts.gstatic.com/s/notosanscjks/v37/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS6MI.woff2';
         
-        const paragraphs = text.split('\n');
-        paragraphs.forEach(p => {
-            const paragraph = document.createElement('p');
-            paragraph.textContent = p || ' ';
-            paragraph.style.marginBottom = '10px';
-            tempDiv.appendChild(paragraph);
-        });
-        
-        document.body.appendChild(tempDiv);
+        fetch(fontUrl)
+            .then(response => response.arrayBuffer())
+            .then(fontData => {
+                const base64Font = btoa(
+                    new Uint8Array(fontData).reduce(
+                        (data, byte) => data + String.fromCharCode(byte),
+                        ''
+                    )
+                );
 
-        html2canvas(tempDiv, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = window.jspdf;
-            
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: [595, canvas.height / 2 + 80]
+                pdfMake.fonts = {
+                    NotoSansCJK: {
+                        normal: base64Font,
+                        bold: base64Font,
+                        italics: base64Font,
+                        bolditalics: base64Font
+                    }
+                };
+
+                const paragraphs = text.split('\n').filter(p => p.trim());
+                
+                const content = paragraphs.map(p => ({
+                    text: p,
+                    fontSize: 12,
+                    lineHeight: 1.8,
+                    margin: [0, 0, 0, 5]
+                }));
+
+                const docDefinition = {
+                    content: content,
+                    defaultStyle: {
+                        font: 'NotoSansCJK'
+                    },
+                    pageSize: 'A4',
+                    pageMargins: [40, 40, 40, 40]
+                };
+
+                pdfMake.createPdf(docDefinition).getBlob((blob) => {
+                    resolve(blob);
+                });
+            })
+            .catch(error => {
+                reject(new Error('字体加载失败: ' + error.message));
             });
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, 595, canvas.height / 2);
-            
-            document.body.removeChild(tempDiv);
-            resolve(pdf.output('blob'));
-        }).catch(error => {
-            document.body.removeChild(tempDiv);
-            reject(error);
-        });
     });
 }
