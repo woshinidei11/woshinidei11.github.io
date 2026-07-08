@@ -584,52 +584,71 @@ async function convertWordFileToPdf(file) {
         throw new Error('文档内容为空');
     }
 
-    return new Promise((resolve, reject) => {
-        const fontUrl = 'https://fonts.gstatic.com/s/notosanscjks/v37/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS6MI.woff2';
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const pageWidth = 595;
+    const fontSize = 14;
+    const lineHeight = 24;
+    const margin = 40;
+    
+    ctx.font = `${fontSize}px 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', sans-serif`;
+    
+    const lines = text.split('\n');
+    let y = margin;
+    const allLines = [];
+    
+    for (const line of lines) {
+        if (line.trim() === '') {
+            y += lineHeight / 2;
+            continue;
+        }
         
-        fetch(fontUrl)
-            .then(response => response.arrayBuffer())
-            .then(fontData => {
-                const base64Font = btoa(
-                    new Uint8Array(fontData).reduce(
-                        (data, byte) => data + String.fromCharCode(byte),
-                        ''
-                    )
-                );
-
-                pdfMake.fonts = {
-                    NotoSansCJK: {
-                        normal: base64Font,
-                        bold: base64Font,
-                        italics: base64Font,
-                        bolditalics: base64Font
-                    }
-                };
-
-                const paragraphs = text.split('\n').filter(p => p.trim());
-                
-                const content = paragraphs.map(p => ({
-                    text: p,
-                    fontSize: 12,
-                    lineHeight: 1.8,
-                    margin: [0, 0, 0, 5]
-                }));
-
-                const docDefinition = {
-                    content: content,
-                    defaultStyle: {
-                        font: 'NotoSansCJK'
-                    },
-                    pageSize: 'A4',
-                    pageMargins: [40, 40, 40, 40]
-                };
-
-                pdfMake.createPdf(docDefinition).getBlob((blob) => {
-                    resolve(blob);
-                });
-            })
-            .catch(error => {
-                reject(new Error('字体加载失败: ' + error.message));
-            });
+        const words = line.split('');
+        let currentLine = '';
+        
+        for (const word of words) {
+            const testLine = currentLine + word;
+            const testWidth = ctx.measureText(testLine).width;
+            
+            if (testWidth > pageWidth - margin * 2 && currentLine) {
+                allLines.push({ text: currentLine, y: y });
+                y += lineHeight;
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        
+        if (currentLine) {
+            allLines.push({ text: currentLine, y: y });
+            y += lineHeight;
+        }
+    }
+    
+    const pageHeight = Math.max(842, y + margin);
+    canvas.width = pageWidth;
+    canvas.height = pageHeight;
+    
+    ctx.font = `${fontSize}px 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, pageWidth, pageHeight);
+    ctx.fillStyle = '#000000';
+    
+    for (const item of allLines) {
+        ctx.fillText(item.text, margin, item.y);
+    }
+    
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [pageWidth, pageHeight]
     });
+    
+    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+    
+    return pdf.output('blob');
 }
