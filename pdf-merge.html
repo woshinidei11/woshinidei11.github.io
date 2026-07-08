@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF合并 - 免费在线合并</title>
+    <meta name="description" content="免费在线PDF合并工具，将多个PDF文件合并为一个文件，无需安装软件">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-file-pdf"></i>
+                <h1>PDF工具在线</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">首页</a></li>
+                    <li><a href="pdf-to-word.html">PDF转Word</a></li>
+                    <li><a href="pdf-compress.html">PDF压缩</a></li>
+                    <li><a href="pdf-merge.html">PDF合并</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="tool-page">
+            <div class="container">
+                <h2>PDF合并</h2>
+                <p>将多个PDF文件合并为一个文件</p>
+                
+                <div class="tool-container">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-file-merge"></i>
+                        </div>
+                        <p>点击或拖拽PDF文件到此处</p>
+                        <input type="file" id="fileInput" accept=".pdf" multiple>
+                    </div>
+
+                    <div class="file-list" id="fileList">
+                        <h3>已选择的文件（拖拽调整顺序）</h3>
+                        <ul id="files"></ul>
+                    </div>
+
+                    <div class="actions">
+                        <button id="mergeBtn" class="btn btn-primary">
+                            <i class="fas fa-file-merge"></i> 开始合并
+                        </button>
+                        <button id="clearBtn" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> 清空列表
+                        </button>
+                    </div>
+
+                    <div class="progress" id="progress">
+                        <div class="progress-bar"></div>
+                        <span class="progress-text">0%</span>
+                    </div>
+
+                    <div class="results" id="results">
+                        <h3>合并结果</h3>
+                        <div id="resultList"></div>
+                    </div>
+                </div>
+
+                <div class="tips">
+                    <h3>使用提示</h3>
+                    <ul>
+                        <li>支持合并多个PDF文件</li>
+                        <li>文件大小建议不超过100MB</li>
+                        <li>可以拖拽调整文件合并顺序</li>
+                        <li>合并后的文件会按顺序排列</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 PDF工具在线. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
