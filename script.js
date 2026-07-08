@@ -584,38 +584,53 @@ async function convertWordFileToPdf(file) {
         throw new Error('文档内容为空');
     }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+    return new Promise((resolve, reject) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = `
+            position: fixed;
+            left: -9999px;
+            top: -9999px;
+            width: 595px;
+            padding: 40px;
+            font-family: 'SimSun', 'Microsoft YaHei', 'Arial Unicode MS', sans-serif;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #000;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        `;
+        
+        const paragraphs = text.split('\n');
+        paragraphs.forEach(p => {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = p || ' ';
+            paragraph.style.marginBottom = '10px';
+            tempDiv.appendChild(paragraph);
+        });
+        
+        document.body.appendChild(tempDiv);
+
+        html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [595, canvas.height / 2 + 80]
+            });
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, 595, canvas.height / 2);
+            
+            document.body.removeChild(tempDiv);
+            resolve(pdf.output('blob'));
+        }).catch(error => {
+            document.body.removeChild(tempDiv);
+            reject(error);
+        });
     });
-
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const margin = 20;
-    const maxWidth = pageWidth - margin * 2;
-    const lineHeight = 7;
-    let y = margin;
-
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-        if (line.trim() === '') {
-            y += lineHeight / 2;
-            continue;
-        }
-
-        const splitLines = doc.splitTextToSize(line, maxWidth);
-        for (const splitLine of splitLines) {
-            if (y > pageHeight - margin) {
-                doc.addPage();
-                y = margin;
-            }
-            doc.text(splitLine, margin, y);
-            y += lineHeight;
-        }
-    }
-
-    return doc.output('blob');
 }
