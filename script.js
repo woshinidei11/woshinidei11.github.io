@@ -193,8 +193,8 @@ async function convertPdfToWord() {
 
         for (const fileInfo of uploadedFiles) {
             try {
-                const text = await extractTextFromPdf(fileInfo.file);
-                const blob = createWordDocument(text);
+                const pdfData = await extractPdfContent(fileInfo.file);
+                const blob = await createWordDocument(pdfData);
                 const url = URL.createObjectURL(blob);
                 const downloadName = fileInfo.name.replace('.pdf', '.docx');
                 
@@ -225,13 +225,7 @@ async function convertPdfToWord() {
     }, 2000);
 }
 
-function createWordDocument(text) {
-    const content = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"><title>PDF转换结果</title></head><body><p>' + text.replace(/\n/g, '</p><p>') + '</p></body></html>';
-    const blob = new Blob(['\ufeff' + content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    return blob;
-}
-
-async function extractTextFromPdf(file) {
+async function extractPdfContent(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async function(e) {
@@ -241,17 +235,43 @@ async function extractTextFromPdf(file) {
                     data: arrayBuffer,
                     disableWorker: true
                 }).promise;
-                let text = '';
+                
+                const content = [];
                 
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    
                     const textContent = await page.getTextContent();
-                    textContent.items.forEach(item => {
-                        text += item.str + '\n';
+                    for (const item of textContent.items) {
+                        content.push({
+                            type: 'text',
+                            content: item.str,
+                            y: item.transform[5]
+                        });
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    const imageData = canvas.toDataURL('image/png');
+                    content.push({
+                        type: 'image',
+                        content: imageData,
+                        y: 0
                     });
                 }
                 
-                resolve(text);
+                content.sort((a, b) => b.y - a.y);
+                
+                resolve(content);
             } catch (error) {
                 reject(error);
             }
@@ -259,6 +279,65 @@ async function extractTextFromPdf(file) {
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
     });
+}
+
+async function createWordDocument(content) {
+    const { Document, Packer, Paragraph, TextRun, ImageRun } = window.docx;
+    
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: []
+        }]
+    });
+    
+    const section = doc.sections[0];
+    
+    for (const item of content) {
+        if (item.type === 'text') {
+            const paragraph = new Paragraph({
+                children: [new TextRun({
+                    text: item.content,
+                    size: 24
+                })]
+            });
+            section.children.push(paragraph);
+        } else if (item.type === 'image') {
+            const base64Data = item.content.split(',')[1];
+            const binaryString = atob(base64Data);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            const paragraph = new Paragraph({
+                children: [new ImageRun({
+                    data: bytes,
+                    transformation: {
+                        width: 500,
+                        height: 500
+                    }
+                })],
+                spacing: {
+                    before: 200,
+                    after: 200
+                }
+            });
+            section.children.push(paragraph);
+        }
+    }
+    
+    if (section.children.length === 0) {
+        section.children.push(new Paragraph({
+            children: [new TextRun({
+                text: '文档内容为空',
+                size: 24
+            })]
+        }));
+    }
+    
+    return Packer.toBlob(doc);
 }
 
 async function compressPdf() {
