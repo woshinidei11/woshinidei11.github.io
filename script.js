@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const convertBtn = document.getElementById('convertBtn');
     const compressBtn = document.getElementById('compressBtn');
     const mergeBtn = document.getElementById('mergeBtn');
+    const wordToPdfBtn = document.getElementById('wordToPdfBtn');
 
     if (convertBtn) {
         convertBtn.addEventListener('click', convertPdfToWord);
@@ -57,12 +58,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mergeBtn) {
         mergeBtn.addEventListener('click', mergePdfs);
     }
+
+    if (wordToPdfBtn) {
+        wordToPdfBtn.addEventListener('click', convertWordToPdf);
+    }
 });
 
 function handleFiles(files) {
+    const isWordPage = document.getElementById('wordToPdfBtn') !== null;
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.type === 'application/pdf') {
+        const isValid = isWordPage 
+            ? (file.name.endsWith('.docx') || file.name.endsWith('.doc'))
+            : file.type === 'application/pdf';
+        if (isValid) {
             const fileInfo = {
                 id: Date.now() + i,
                 file: file,
@@ -87,9 +96,11 @@ function addFileToList(fileInfo) {
     const fileList = document.getElementById('files');
     if (!fileList) return;
 
+    const isWordPage = document.getElementById('wordToPdfBtn') !== null;
+    const iconClass = isWordPage ? 'fas fa-file-word' : 'fas fa-file-pdf';
     const li = document.createElement('li');
     li.dataset.id = fileInfo.id;
-    li.innerHTML = '<div class="file-name"><i class="fas fa-file-pdf"></i><span>' + fileInfo.name + '</span><span class="file-size">(' + fileInfo.size + ')</span></div><button class="remove-btn" onclick="removeFile(' + fileInfo.id + ')"><i class="fas fa-times"></i></button>';
+    li.innerHTML = '<div class="file-name"><i class="' + iconClass + '"></i><span>' + fileInfo.name + '</span><span class="file-size">(' + fileInfo.size + ')</span></div><button class="remove-btn" onclick="removeFile(' + fileInfo.id + ')"><i class="fas fa-times"></i></button>';
     fileList.appendChild(li);
 }
 
@@ -424,4 +435,94 @@ async function mergePdfFiles(fileInfos) {
             }
         }).catch(reject);
     });
+}
+
+async function convertWordToPdf() {
+    if (uploadedFiles.length === 0) {
+        alert('请先上传Word文件');
+        return;
+    }
+
+    showProgress();
+
+    setTimeout(async function() {
+        const results = [];
+        let firstError = null;
+
+        for (const fileInfo of uploadedFiles) {
+            try {
+                const blob = await convertWordFileToPdf(fileInfo.file);
+                const url = URL.createObjectURL(blob);
+                const downloadName = fileInfo.name.replace(/\.docx?$/, '.pdf');
+
+                results.push({
+                    name: fileInfo.name,
+                    url: url,
+                    downloadName: downloadName
+                });
+            } catch (error) {
+                console.error('转换失败:', fileInfo.name, error);
+                if (!firstError) {
+                    firstError = error;
+                }
+            }
+        }
+
+        hideProgress();
+
+        if (results.length > 0) {
+            showResults(results);
+        } else {
+            let errorMsg = '转换失败，请重试';
+            if (firstError) {
+                errorMsg = '转换失败: ' + (firstError.message || firstError);
+            }
+            alert(errorMsg);
+        }
+    }, 2000);
+}
+
+async function convertWordFileToPdf(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    const text = result.value;
+
+    if (!text || text.trim().length === 0) {
+        throw new Error('文档内容为空');
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    const lineHeight = 7;
+    let y = margin;
+
+    const lines = text.split('\n');
+
+    for (const line of lines) {
+        if (line.trim() === '') {
+            y += lineHeight / 2;
+            continue;
+        }
+
+        const splitLines = doc.splitTextToSize(line, maxWidth);
+        for (const splitLine of splitLines) {
+            if (y > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.text(splitLine, margin, y);
+            y += lineHeight;
+        }
+    }
+
+    return doc.output('blob');
 }

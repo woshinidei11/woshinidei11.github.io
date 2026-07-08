@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF合并 - 免费在线合并</title>
-    <meta name="description" content="免费在线PDF合并工具，将多个PDF文件合并为一个文件，无需安装软件">
+    <title>Word转PDF - 免费在线转换</title>
+    <meta name="description" content="免费在线Word转PDF工具，支持批量将Word文档转换为PDF文件，无需安装软件">
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -30,26 +30,26 @@
     <main>
         <section class="tool-page">
             <div class="container">
-                <h2>PDF合并</h2>
-                <p>将多个PDF文件合并为一个文件</p>
+                <h2>Word转PDF</h2>
+                <p>批量将Word文档转换为PDF文件</p>
                 
                 <div class="tool-container">
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">
-                            <i class="fas fa-file-merge"></i>
+                            <i class="fas fa-file-word"></i>
                         </div>
-                        <p>点击或拖拽PDF文件到此处</p>
-                        <input type="file" id="fileInput" accept=".pdf" multiple>
+                        <p>点击或拖拽Word文件到此处（支持 .docx 格式）</p>
+                        <input type="file" id="fileInput" accept=".docx" multiple>
                     </div>
 
                     <div class="file-list" id="fileList">
-                        <h3>已选择的文件（拖拽调整顺序）</h3>
+                        <h3>已选择的文件</h3>
                         <ul id="files"></ul>
                     </div>
 
                     <div class="actions">
-                        <button id="mergeBtn" class="btn btn-primary">
-                            <i class="fas fa-file-merge"></i> 开始合并
+                        <button id="wordToPdfBtn" class="btn btn-primary">
+                            <i class="fas fa-arrow-right"></i> 开始转换
                         </button>
                         <button id="clearBtn" class="btn btn-secondary">
                             <i class="fas fa-trash"></i> 清空列表
@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="results" id="results">
-                        <h3>合并结果</h3>
+                        <h3>转换结果</h3>
                         <div id="resultList"></div>
                     </div>
                 </div>
@@ -70,10 +70,10 @@
                 <div class="tips">
                     <h3>使用提示</h3>
                     <ul>
-                        <li>支持合并多个PDF文件</li>
-                        <li>文件大小建议不超过100MB</li>
-                        <li>可以拖拽调整文件合并顺序</li>
-                        <li>合并后的文件会按顺序排列</li>
+                        <li>支持批量转换多个Word文件</li>
+                        <li>目前支持 .docx 格式（Word 2007及以上版本）</li>
+                        <li>文件大小建议不超过50MB</li>
+                        <li>转换后的PDF会保留文字内容和基本格式</li>
                     </ul>
                 </div>
             </div>
@@ -86,7 +86,7 @@
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
