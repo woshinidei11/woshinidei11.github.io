@@ -1,6 +1,10 @@
 let uploadedFiles = [];
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('files');
@@ -160,6 +164,7 @@ async function convertPdfToWord() {
 
     setTimeout(async function() {
         const results = [];
+        let firstError = null;
 
         for (const fileInfo of uploadedFiles) {
             try {
@@ -175,6 +180,9 @@ async function convertPdfToWord() {
                 });
             } catch (error) {
                 console.error('转换失败:', error);
+                if (!firstError) {
+                    firstError = error;
+                }
             }
         }
 
@@ -183,7 +191,11 @@ async function convertPdfToWord() {
         if (results.length > 0) {
             showResults(results);
         } else {
-            alert('转换失败，请重试');
+            let errorMsg = '转换失败，请重试';
+            if (firstError) {
+                errorMsg = '转换失败: ' + (firstError.message || firstError);
+            }
+            alert(errorMsg);
         }
     }, 2000);
 }
@@ -200,7 +212,10 @@ async function extractTextFromPdf(file) {
         reader.onload = async function(e) {
             try {
                 const arrayBuffer = e.target.result;
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const pdf = await pdfjsLib.getDocument({ 
+                    data: arrayBuffer,
+                    disableWorker: true
+                }).promise;
                 let text = '';
                 
                 for (let i = 1; i <= pdf.numPages; i++) {
@@ -265,7 +280,10 @@ async function compressPdfFile(file, quality) {
         reader.onload = async function(e) {
             try {
                 const arrayBuffer = e.target.result;
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const pdf = await pdfjsLib.getDocument({ 
+                    data: arrayBuffer,
+                    disableWorker: true
+                }).promise;
                 const pages = [];
                 
                 for (let i = 1; i <= pdf.numPages; i++) {
@@ -356,7 +374,10 @@ async function mergePdfFiles(fileInfos) {
                 const doc = new jsPDF();
                 
                 for (let i = 0; i < arrayBuffers.length; i++) {
-                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffers[i] }).promise;
+                    const pdf = await pdfjsLib.getDocument({ 
+                        data: arrayBuffers[i],
+                        disableWorker: true
+                    }).promise;
                     
                     for (let j = 1; j <= pdf.numPages; j++) {
                         if (i === 0 && j === 1) {
