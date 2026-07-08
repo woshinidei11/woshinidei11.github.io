@@ -1,4 +1,4 @@
-const uploadedFiles = [];
+let uploadedFiles = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     const uploadArea = document.getElementById('uploadArea');
@@ -85,16 +85,7 @@ function addFileToList(fileInfo) {
 
     const li = document.createElement('li');
     li.dataset.id = fileInfo.id;
-    li.innerHTML = `
-        <div class="file-name">
-            <i class="fas fa-file-pdf"></i>
-            <span>${fileInfo.name}</span>
-            <span class="file-size">(${fileInfo.size})</span>
-        </div>
-        <button class="remove-btn" onclick="removeFile(${fileInfo.id})">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
+    li.innerHTML = '<div class="file-name"><i class="fas fa-file-pdf"></i><span>' + fileInfo.name + '</span><span class="file-size">(' + fileInfo.size + ')</span></div><button class="remove-btn" onclick="removeFile(' + fileInfo.id + ')"><i class="fas fa-times"></i></button>';
     fileList.appendChild(li);
 }
 
@@ -102,7 +93,7 @@ function removeFile(id) {
     const index = uploadedFiles.findIndex(f => f.id === id);
     if (index !== -1) {
         uploadedFiles.splice(index, 1);
-        const li = document.querySelector(`li[data-id="${id}"]`);
+        const li = document.querySelector('li[data-id="' + id + '"]');
         if (li) {
             li.remove();
         }
@@ -153,15 +144,7 @@ function showResults(results) {
         results.forEach(result => {
             const item = document.createElement('div');
             item.className = 'result-item';
-            item.innerHTML = `
-                <div>
-                    <i class="fas fa-check-circle success-icon"></i>
-                    <span>${result.name}</span>
-                </div>
-                <a href="${result.url}" download="${result.downloadName}" class="download-btn">
-                    <i class="fas fa-download"></i> 下载
-                </a>
-            `;
+            item.innerHTML = '<div><i class="fas fa-check-circle success-icon"></i><span>' + result.name + '</span></div><a href="' + result.url + '" download="' + result.downloadName + '" class="download-btn"><i class="fas fa-download"></i> 下载</a>';
             resultList.appendChild(item);
         });
     }
@@ -181,7 +164,7 @@ async function convertPdfToWord() {
         for (const fileInfo of uploadedFiles) {
             try {
                 const text = await extractTextFromPdf(fileInfo.file);
-                const blob = await createWordDocument(text);
+                const blob = createWordDocument(text);
                 const url = URL.createObjectURL(blob);
                 const downloadName = fileInfo.name.replace('.pdf', '.docx');
                 
@@ -205,36 +188,10 @@ async function convertPdfToWord() {
     }, 2000);
 }
 
-async function createWordDocument(text) {
-    const { Document, Packer, Paragraph, TextRun } = window.docx;
-    
-    const doc = new Document({
-        sections: [{
-            properties: {},
-            children: text.split('\n').map(line => {
-                if (line.trim() === '') {
-                    return new Paragraph({
-                        spacing: {
-                            after: 200
-                        }
-                    });
-                }
-                return new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: line,
-                            size: 24
-                        })
-                    ],
-                    spacing: {
-                        after: 100
-                    }
-                });
-            })
-        }]
-    });
-    
-    return Packer.toBlob(doc);
+function createWordDocument(text) {
+    const content = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"><title>PDF转换结果</title></head><body><p>' + text.replace(/\n/g, '</p><p>') + '</p></body></html>';
+    const blob = new Blob(['\ufeff' + content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    return blob;
 }
 
 async function extractTextFromPdf(file) {
