@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileList = document.getElementById('files');
     const clearBtn = document.getElementById('clearBtn');
     
-    if (uploadArea) {
+    if (uploadArea && fileInput) {
         uploadArea.addEventListener('click', function() {
             fileInput.click();
         });
@@ -66,11 +66,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function handleFiles(files) {
     const isWordPage = document.getElementById('wordToPdfBtn') !== null;
+    let addedCount = 0;
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const isValid = isWordPage 
-            ? (file.name.endsWith('.docx') || file.name.endsWith('.doc'))
-            : file.type === 'application/pdf';
+        let isValid = false;
+        
+        if (isWordPage) {
+            const nameLower = file.name.toLowerCase();
+            isValid = nameLower.endsWith('.docx') || nameLower.endsWith('.doc') || 
+                      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                      file.type === 'application/msword';
+        } else {
+            isValid = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        }
+        
         if (isValid) {
             const fileInfo = {
                 id: Date.now() + i,
@@ -80,7 +89,12 @@ function handleFiles(files) {
             };
             uploadedFiles.push(fileInfo);
             addFileToList(fileInfo);
+            addedCount++;
         }
+    }
+    
+    if (addedCount === 0 && files.length > 0) {
+        alert(isWordPage ? '请选择 .docx 或 .doc 格式的Word文件' : '请选择 PDF 格式的文件');
     }
 }
 
